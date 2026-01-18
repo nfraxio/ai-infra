@@ -48,6 +48,7 @@ class SubAgentType(str, Enum):
     """Types of specialized subagents.
 
     Each type represents a different role in the development workflow:
+    - SCAFFOLDER: Sets up new project structure based on tech stack
     - CODER: Writes and edits code
     - REVIEWER: Reviews code for bugs and style
     - TESTER: Discovers and runs tests
@@ -56,6 +57,7 @@ class SubAgentType(str, Enum):
     - TESTWRITER: Creates comprehensive test suites
     """
 
+    SCAFFOLDER = "scaffolder"
     CODER = "coder"
     REVIEWER = "reviewer"
     TESTER = "tester"

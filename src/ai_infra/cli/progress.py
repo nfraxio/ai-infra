@@ -43,6 +43,7 @@ from rich.text import Text
 
 from ai_infra.cli.console import (
     BOX_STYLES,
+    BRAND_ACCENT,
     detect_terminal_capabilities,
     get_console,
 )
@@ -468,7 +469,7 @@ class PhaseSection:
         text = Text()
         text.append(f"[{indicator}] ", style="dim")
         text.append(self.title, style="bold white")
-        text.append(f"  [{self.completed}/{self.total}] ", style="dim cyan")
+        text.append(f"  [{self.completed}/{self.total}] ", style=f"dim {BRAND_ACCENT}")
         text.append(status_text, style=status_style)
 
         return text
@@ -571,8 +572,8 @@ class TokenCounter:
             bar_style = "bold yellow"
             pct_style = "bold yellow"
         else:
-            bar_style = "cyan"
-            pct_style = "bold cyan"
+            bar_style = BRAND_ACCENT
+            pct_style = f"bold {BRAND_ACCENT}"
 
         text = Text()
         text.append("Tokens: ", style="dim")

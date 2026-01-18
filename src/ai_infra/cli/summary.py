@@ -40,7 +40,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from ai_infra.cli.console import get_console
+from ai_infra.cli.console import BRAND_ACCENT, get_console
 from ai_infra.cli.progress import format_duration
 
 if TYPE_CHECKING:
@@ -186,7 +186,7 @@ class FileChangeSummary:
                 Text(change.get_icon(), style=change.get_style()),
                 Text(change.path, style="path"),
                 Text(change.change_type.value, style="dim"),
-                Text(change.get_stats(), style="dim cyan"),
+                Text(change.get_stats(), style=f"dim {BRAND_ACCENT}"),
             )
 
         return table
@@ -547,7 +547,7 @@ def render_next_steps(steps: list[NextStep]) -> Table:
             step_text.append(step.command, style="command")
 
         table.add_row(
-            Text(f"{i}.", style="dim cyan"),
+            Text(f"{i}.", style=f"dim {BRAND_ACCENT}"),
             step_text,
         )
 
@@ -766,8 +766,8 @@ class ExecutionSummary:
 
         tasks_text = Text()
         tasks_text.append(f"{completed}/{total} completed  ", style="white")
-        tasks_text.append(bar, style="cyan")
-        tasks_text.append(f"  {pct:.0f}%", style="bold cyan")
+        tasks_text.append(bar, style=BRAND_ACCENT)
+        tasks_text.append(f"  {pct:.0f}%", style=f"bold {BRAND_ACCENT}")
 
         table.add_row(
             Text("Tasks", style="dim"),
@@ -794,7 +794,7 @@ class ExecutionSummary:
         # Model
         table.add_row(
             Text("Model", style="dim"),
-            Text(self.result.model_name, style="cyan"),
+            Text(self.result.model_name, style=BRAND_ACCENT),
         )
 
         # Cost

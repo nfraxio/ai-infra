@@ -45,6 +45,7 @@ from rich.table import Table
 from rich.text import Text
 
 from ai_infra.cli.console import (
+    BRAND_ACCENT,
     get_console,
 )
 from ai_infra.cli.progress import format_duration
@@ -130,12 +131,12 @@ class ModelIndicator:
         """
         text = Text()
         text.append("Model: ", style="dim")
-        text.append(self.model_name, style="bold cyan")
+        text.append(self.model_name, style=f"bold {BRAND_ACCENT}")
 
         if self.show_provider:
             provider = get_model_provider(self.model_name)
             text.append(" (", style="dim")
-            text.append(provider.value, style="dim cyan")
+            text.append(provider.value, style=f"dim {BRAND_ACCENT}")
             text.append(")", style="dim")
 
         return text
@@ -153,7 +154,7 @@ class ModelIndicator:
             name = name[:17] + "..."
 
         text = Text()
-        text.append(name, style="cyan")
+        text.append(name, style=BRAND_ACCENT)
         return text
 
 
@@ -359,7 +360,7 @@ def render_keyboard_hints(
         if i > 0:
             text.append("  ", style="dim")
         text.append("[", style="dim")
-        text.append(shortcut.key, style="bold cyan")
+        text.append(shortcut.key, style=f"bold {BRAND_ACCENT}")
         text.append("] ", style="dim")
         text.append(shortcut.action, style="dim")
 
@@ -480,7 +481,7 @@ class StatusBar:
         text.append("Phase ", style="dim")
         text.append(
             f"{self.state.current_phase}/{self.state.total_phases}",
-            style="bold cyan",
+            style=f"bold {BRAND_ACCENT}",
         )
         text.append("  ", style="")
 
@@ -488,7 +489,7 @@ class StatusBar:
         text.append("Tasks ", style="dim")
         text.append(
             f"{self.state.completed_tasks}/{self.state.total_tasks}",
-            style="bold cyan",
+            style=f"bold {BRAND_ACCENT}",
         )
         text.append("  ", style="")
 

@@ -68,11 +68,20 @@ Your ONLY job is to analyze tasks and decide which specialist agent should handl
 
 AVAILABLE AGENTS:
 
+0. **Scaffolder** - Sets up and configures projects
+   - Analyzes roadmap to determine tech stack
+   - Creates project structure (package.json, tsconfig.json, pyproject.toml)
+   - Initializes directories and configuration files
+   - Adds missing config files to existing projects
+   - Sets up build tools, linters, formatters
+   - Used for NEW projects OR adding missing infrastructure to existing ones
+   - CRITICAL: Routes to this for project setup/config tasks
+
 1. **Coder** - Implements application code
    - Creates modules, classes, functions
    - Implements features and business logic
-   - Sets up project structure (pyproject.toml, __init__.py)
-   - Does NOT create tests
+   - Edits existing source files
+   - Does NOT create project config or tests
 
 2. **TestWriter** - Creates test files
    - Writes unit tests, integration tests
@@ -106,22 +115,34 @@ AVAILABLE AGENTS:
 
 ROUTING RULES:
 
-1. "Create tests", "Write tests", "Add tests" → **TestWriter**
-2. "Run tests", "Execute tests", "Verify tests pass" → **Tester**
-3. "Fix", "Debug", "Resolve error", "Bug" → **Debugger**
-4. "Review", "Refactor", "Optimize", "Improve" → **Reviewer**
-5. "Research", "Find out", "Look up", "How to" → **Researcher**
-6. Creating application code, modules, classes → **Coder**
+1. Project setup/config tasks → **Scaffolder**:
+   - "Set up project", "Initialize", "Bootstrap", "Create project structure"
+   - "Add/configure tsconfig", "Add eslint", "Configure prettier"
+   - "Set up Tailwind", "Configure Next.js", "Add dependencies"
+   - "Create package.json", "Create pyproject.toml"
+   - Missing config files (even if project exists)
+
+2. "Create tests", "Write tests", "Add tests" → **TestWriter**
+3. "Run tests", "Execute tests", "Verify tests pass" → **Tester**
+4. "Fix", "Debug", "Resolve error", "Bug" → **Debugger**
+5. "Review", "Refactor", "Optimize", "Improve" → **Reviewer**
+6. "Research", "Find out", "Look up", "How to" → **Researcher**
+7. Creating application code, components, modules → **Coder**
 
 CONTEXT CONSIDERATIONS:
+- If no existing files and task is about creating project → Scaffolder
+- If task mentions config/setup even with existing project → Scaffolder
+- If task mentions framework/tech stack setup (Next.js, Django, etc.) → Scaffolder
+- If task is about adding config files (tsconfig, eslint, tailwind.config) → Scaffolder
 - If previous tasks created source files and current task is about tests → TestWriter
 - If tests exist and task mentions running/verifying → Tester
 - If task mentions an error or failure → Debugger
+- If task is about creating app components/pages/routes → Coder
 
 OUTPUT FORMAT:
 Respond with ONLY a JSON object:
 {{
-  "agent": "coder|testwriter|tester|debugger|reviewer|researcher",
+  "agent": "scaffolder|coder|testwriter|tester|debugger|reviewer|researcher",
   "confidence": 0.0-1.0,
   "reasoning": "Brief explanation of why this agent"
 }}
@@ -209,6 +230,7 @@ class RoutingResponse(BaseModel):
 # =============================================================================
 
 _AGENT_TYPE_MAP: dict[str, SubAgentType] = {
+    "scaffolder": SubAgentType.SCAFFOLDER,
     "coder": SubAgentType.CODER,
     "testwriter": SubAgentType.TESTWRITER,
     "tester": SubAgentType.TESTER,

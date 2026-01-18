@@ -203,7 +203,15 @@ class TestAgentTypeMapping:
 
     def test_all_agent_types_mapped(self) -> None:
         """Test all expected agent types are in the map."""
-        expected = {"coder", "testwriter", "tester", "debugger", "reviewer", "researcher"}
+        expected = {
+            "coder",
+            "testwriter",
+            "tester",
+            "debugger",
+            "reviewer",
+            "researcher",
+            "scaffolder",
+        }
         assert set(_AGENT_TYPE_MAP.keys()) == expected
 
     def test_mapping_to_correct_types(self) -> None:
@@ -213,6 +221,7 @@ class TestAgentTypeMapping:
         assert _AGENT_TYPE_MAP["tester"] == SubAgentType.TESTER
         assert _AGENT_TYPE_MAP["debugger"] == SubAgentType.DEBUGGER
         assert _AGENT_TYPE_MAP["reviewer"] == SubAgentType.REVIEWER
+        assert _AGENT_TYPE_MAP["scaffolder"] == SubAgentType.SCAFFOLDER
         assert _AGENT_TYPE_MAP["researcher"] == SubAgentType.RESEARCHER
 
 

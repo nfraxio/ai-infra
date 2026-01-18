@@ -51,6 +51,7 @@ from rich.tree import Tree
 
 from ai_infra.cli.console import (
     BOX_STYLES,
+    BRAND_ACCENT,
     detect_terminal_capabilities,
     get_console,
 )
@@ -592,7 +593,7 @@ class ToolCallPanel:
 
         text = Text()
         text.append(f"[{expand_icon}] ", style="bold")
-        text.append(self.tool_name, style="bold cyan")
+        text.append(self.tool_name, style=f"bold {BRAND_ACCENT}")
         text.append(self._format_args_display(), style="dim")
 
         # Right side info
@@ -787,7 +788,7 @@ class ToolCallManager:
             )
             # Highlight current
             if i == self._current_index:
-                panels.append(Panel(panel, border_style="cyan", box=BOX_STYLES["default"]))
+                panels.append(Panel(panel, border_style=BRAND_ACCENT, box=BOX_STYLES["default"]))
             else:
                 panels.append(panel)
         return Group(*panels)
@@ -892,7 +893,7 @@ class DiffViewer:
         lines = []
 
         # Hunk header
-        lines.append(Text(hunk.header, style="cyan bold"))
+        lines.append(Text(hunk.header, style=f"{BRAND_ACCENT} bold"))
 
         # Lines with coloring
         for prefix, content in hunk.lines:
@@ -1058,7 +1059,7 @@ def render_output_help() -> Panel:
         box=None,
         padding=(0, 2),
     )
-    table.add_column("Key", style="bold cyan")
+    table.add_column("Key", style=f"bold {BRAND_ACCENT}")
     table.add_column("Action", style="white")
     table.add_column("Description", style="dim")
 

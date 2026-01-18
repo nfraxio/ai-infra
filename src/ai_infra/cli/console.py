@@ -42,13 +42,27 @@ if TYPE_CHECKING:
 
 
 # =============================================================================
+# Brand Colors
+# =============================================================================
+
+# nfrax brand colors (dark blue theme)
+BRAND_PRIMARY = "#1e3a5f"  # Dark navy
+BRAND_ACCENT = "#3b82f6"  # Accent blue
+BRAND_MUTED = "#64748b"  # Slate
+
+
+# =============================================================================
 # Theme Definition
 # =============================================================================
 
 EXECUTOR_THEME = Theme(
     {
+        # Brand colors
+        "brand": BRAND_ACCENT,
+        "brand.bold": f"bold {BRAND_ACCENT}",
+        "brand.dim": f"dim {BRAND_ACCENT}",
         # Semantic colors
-        "info": "cyan",
+        "info": BRAND_ACCENT,
         "success": "bold green",
         "warning": "bold yellow",
         "error": "bold red",
@@ -60,7 +74,7 @@ EXECUTOR_THEME = Theme(
         "status.failed": "bold red",
         "status.skipped": "dim yellow",
         # Task display
-        "task.id": "dim cyan",
+        "task.id": f"dim {BRAND_ACCENT}",
         "task.title": "bold white",
         "task.description": "dim white",
         "task.duration": "dim green",
@@ -69,23 +83,23 @@ EXECUTOR_THEME = Theme(
         "agent.tester": "bold green",
         "agent.reviewer": "bold magenta",
         "agent.debugger": "bold red",
-        "agent.researcher": "bold cyan",
+        "agent.researcher": f"bold {BRAND_ACCENT}",
         "agent.orchestrator": "bold yellow",
         # Code and files
-        "code": "cyan",
-        "path": "blue underline",
+        "code": BRAND_ACCENT,
+        "path": f"{BRAND_ACCENT} underline",
         "command": "bold white on grey23",
         # Metrics
         "metric.label": "dim white",
-        "metric.value": "bold cyan",
-        "metric.unit": "dim cyan",
+        "metric.value": f"bold {BRAND_ACCENT}",
+        "metric.unit": f"dim {BRAND_ACCENT}",
         # Hints and secondary text
         "hint": "dim italic",
         "muted": "dim",
         # Progress indicators
-        "progress.bar": "cyan",
-        "progress.percentage": "bold cyan",
-        "progress.remaining": "dim cyan",
+        "progress.bar": BRAND_ACCENT,
+        "progress.percentage": f"bold {BRAND_ACCENT}",
+        "progress.remaining": f"dim {BRAND_ACCENT}",
     }
 )
 
@@ -309,16 +323,16 @@ class SpinnerConfig:
 
     spinner: str
     text: str
-    style: str = "cyan"
+    style: str = BRAND_ACCENT
 
 
 SPINNERS: dict[str, SpinnerConfig] = {
-    "thinking": SpinnerConfig(spinner="dots", text="Analyzing...", style="cyan"),
+    "thinking": SpinnerConfig(spinner="dots", text="Analyzing...", style=BRAND_ACCENT),
     "executing": SpinnerConfig(spinner="line", text="Executing...", style="yellow"),
     "verifying": SpinnerConfig(spinner="dots2", text="Verifying...", style="green"),
-    "loading": SpinnerConfig(spinner="dots12", text="Loading...", style="cyan"),
+    "loading": SpinnerConfig(spinner="dots12", text="Loading...", style=BRAND_ACCENT),
     "connecting": SpinnerConfig(spinner="dots", text="Connecting...", style="blue"),
-    "processing": SpinnerConfig(spinner="dots8Bit", text="Processing...", style="cyan"),
+    "processing": SpinnerConfig(spinner="dots8Bit", text="Processing...", style=BRAND_ACCENT),
 }
 
 
@@ -492,7 +506,7 @@ def print_info(message: str) -> None:
     """
     console = get_console()
     text = Text()
-    text.append("[*] ", style="bold cyan")
+    text.append("[*] ", style=f"bold {BRAND_ACCENT}")
     text.append(message, style="info")
     console.print(text)
 
@@ -513,7 +527,7 @@ def print_step(step: int, total: int, message: str) -> None:
     """
     console = get_console()
     text = Text()
-    text.append(f"[{step}/{total}] ", style="dim cyan")
+    text.append(f"[{step}/{total}] ", style=f"dim {BRAND_ACCENT}")
     text.append(message, style="white")
     console.print(text)
 

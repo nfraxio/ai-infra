@@ -17,8 +17,10 @@ from ai_infra.cli.cmds import (
     register_imagegen,
     register_mcp,
     register_multimodal,
+    register_setup,
     register_stdio_publisher,
 )
+from ai_infra.cli.credentials import load_credentials_into_env
 from ai_infra.llm.defaults import DEFAULT_MODELS
 from ai_infra.llm.providers.discovery import (
     get_default_provider,
@@ -111,14 +113,19 @@ def _show_banner():
 
 def _show_provider_status() -> bool:
     """Display configured provider status. Returns True if any configured."""
+    # Auto-load credentials from config file
+    load_credentials_into_env()
+
     configured = list_configured_providers()
 
     if not configured:
         console.print("  [yellow]⚠[/yellow] [dim]No providers configured[/dim]")
         console.print()
-        console.print("    [dim]Set an API key to get started:[/dim]")
-        console.print("    [white]export OPENAI_API_KEY=sk-...[/white]")
-        console.print("    [white]export ANTHROPIC_API_KEY=sk-ant-...[/white]")
+        console.print("    [dim]Run the setup wizard to configure your API keys:[/dim]")
+        console.print("    [white]ai-infra setup[/white]")
+        console.print()
+        console.print("    [dim]Or set environment variables directly:[/dim]")
+        console.print("    [dim]export OPENAI_API_KEY=sk-...[/dim]")
         console.print()
         return False
 
@@ -184,6 +191,7 @@ def _show_help():
     console.print()
 
     commands = [
+        ("setup", "Configure API keys (interactive wizard)"),
         ("chat", "Interactive chat with LLMs (supports --mcp for tools)"),
         ("chat --voice", "Voice chat mode (speak to chat)"),
         ("executor", "Autonomous task execution (roadmaps, coding)"),
@@ -252,6 +260,10 @@ def main_callback(
     ),
 ):
     """ai-infra — Production-ready SDK for building AI applications."""
+    # Always load credentials from config file into environment
+    # This ensures all commands have access to stored API keys
+    load_credentials_into_env()
+
     # If no command given, show our custom help
     if ctx.invoked_subcommand is None:
         _show_help()
@@ -260,6 +272,7 @@ def main_callback(
 
 register_chat(app)
 register_executor(app)
+register_setup(app)
 register_stdio_publisher(app)
 register_discovery(app)
 register_imagegen(app)

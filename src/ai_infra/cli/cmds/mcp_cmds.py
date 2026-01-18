@@ -26,6 +26,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
 
+from ai_infra.cli.console import BRAND_ACCENT
 from ai_infra.mcp import (
     MCPClient,
     MCPResource,
@@ -246,7 +247,7 @@ def tools_cmd(
                 return
 
             table = Table(title=f"MCP Tools ({len(tools)})")
-            table.add_column("Name", style="cyan", no_wrap=True)
+            table.add_column("Name", style=BRAND_ACCENT, no_wrap=True)
             table.add_column("Description", style="white")
 
             if verbose:
@@ -343,7 +344,7 @@ def prompts_cmd(
                 return
 
             table = Table(title=f"MCP Prompts ({len(prompts)})")
-            table.add_column("Name", style="cyan", no_wrap=True)
+            table.add_column("Name", style=BRAND_ACCENT, no_wrap=True)
             table.add_column("Description", style="white")
             table.add_column("Arguments", style="dim")
 
@@ -428,7 +429,7 @@ def resources_cmd(
                 return
 
             table = Table(title=f"MCP Resources ({len(resources)})")
-            table.add_column("Name", style="cyan", no_wrap=True)
+            table.add_column("Name", style=BRAND_ACCENT, no_wrap=True)
             table.add_column("URI", style="blue")
             table.add_column("MIME Type", style="dim")
 
@@ -778,7 +779,7 @@ def info_cmd(
             # Build tree view
             tree = Tree("[bold]MCP Server Info[/bold]")
 
-            conn = tree.add("[cyan]Connection[/cyan]")
+            conn = tree.add(f"[{BRAND_ACCENT}]Connection[/{BRAND_ACCENT}]")
             conn.add(f"Transport: {transport}")
             if url:
                 conn.add(f"URL: {url}")
@@ -787,7 +788,7 @@ def info_cmd(
                 if args:
                     conn.add(f"Args: {args}")
 
-            caps = tree.add("[cyan]Capabilities[/cyan]")
+            caps = tree.add(f"[{BRAND_ACCENT}]Capabilities[/{BRAND_ACCENT}]")
             caps.add(f"Tools: {info['tools_count']}")
             caps.add(f"Prompts: {info['prompts_count']}")
             caps.add(f"Resources: {info['resources_count']}")

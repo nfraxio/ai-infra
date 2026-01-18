@@ -77,6 +77,9 @@ from ai_infra.executor.agents.orchestrator import (
 from ai_infra.executor.agents.registry import SubAgentRegistry, SubAgentType
 from ai_infra.executor.agents.researcher import ResearcherAgent
 from ai_infra.executor.agents.reviewer import ReviewerAgent
+
+# Phase 16.5.14: Scaffolder agent for project setup
+from ai_infra.executor.agents.scaffolder import ScaffolderAgent
 from ai_infra.executor.agents.spawner import (
     compute_quality_score,
     spawn_for_task,
@@ -119,6 +122,7 @@ __all__ = [
     "DebuggerAgent",
     "ResearcherAgent",
     "ReviewerAgent",
+    "ScaffolderAgent",
     "TesterAgent",
     # Phase 16.5.11: TestWriter and Orchestrator
     "TestWriterAgent",

@@ -25,6 +25,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from ai_infra import Agent
+from ai_infra.cli.console import BRAND_ACCENT
 from ai_infra.executor import (
     ExecutionStatus,
     Executor,
@@ -120,7 +121,7 @@ def _render_node_metrics(node_metrics: dict[str, Any] | None) -> Panel | None:
 
     # Build table
     table = Table(show_header=True, header_style="bold", box=None)
-    table.add_column("Node", style="cyan")
+    table.add_column("Node", style=BRAND_ACCENT)
     table.add_column("Tokens", justify="right")
     table.add_column("%", justify="right")
     table.add_column("Duration", justify="right")
@@ -193,7 +194,7 @@ def _render_routing_history(
 
     # Build table
     table = Table(show_header=True, header_style="bold", box=None)
-    table.add_column("Task", style="cyan", no_wrap=False, max_width=40)
+    table.add_column("Task", style=BRAND_ACCENT, no_wrap=False, max_width=40)
     table.add_column("Agent", style="green")
     table.add_column("Conf.", justify="right")
     table.add_column("Method", style="dim")
@@ -236,7 +237,7 @@ def _render_routing_history(
         table,
         title="Orchestrator Routing Decisions",
         subtitle=subtitle,
-        border_style="cyan",
+        border_style=BRAND_ACCENT,
     )
 
 
@@ -282,7 +283,7 @@ def prompt_hitl_action(
     console.print()
     console.print("=" * 60)
     if task_id:
-        console.print(f"[bold cyan]Task {task_id}:[/bold cyan] {task_title}")
+        console.print(f"[bold {BRAND_ACCENT}]Task {task_id}:[/bold {BRAND_ACCENT}] {task_title}")
     console.print(f"[bold]PROPOSAL:[/bold] {proposal_description}")
     console.print("=" * 60)
 
@@ -444,7 +445,7 @@ def _render_results_table(summary: RunSummary) -> Table:
     """Render execution results as a Rich table."""
     table = Table(show_header=True, header_style="bold")
     table.add_column("", width=3)  # Status icon
-    table.add_column("Task ID", style="cyan")
+    table.add_column("Task ID", style=BRAND_ACCENT)
     table.add_column("Title", no_wrap=False)
     table.add_column("Duration", justify="right")
     table.add_column("Tokens", justify="right")
@@ -478,7 +479,7 @@ def _render_status_table(executor: Executor) -> Table:
     """Render task status as a Rich table."""
     table = Table(show_header=True, header_style="bold")
     table.add_column("", width=3)  # Status icon
-    table.add_column("Task ID", style="cyan")
+    table.add_column("Task ID", style=BRAND_ACCENT)
     table.add_column("Title", no_wrap=False)
     table.add_column("Status")
 
@@ -1164,7 +1165,7 @@ def run_cmd(
     if not output_json:
         if dry_run:
             console.print("[yellow]Dry run mode - no changes will be made[/yellow]\n")
-        console.print(f"Running executor on [cyan]{roadmap}[/cyan]")
+        console.print(f"Running executor on [{BRAND_ACCENT}]{roadmap}[/{BRAND_ACCENT}]")
         if max_tasks > 0:
             console.print(f"  Max tasks: {max_tasks}")
         console.print(f"  Model: {model}")
@@ -1172,16 +1173,16 @@ def run_cmd(
             console.print(f"  Retry attempts: {retry_failed}")
             console.print(f"  Adaptive mode: {adaptive_mode}")
         if normalize_with_llm:
-            console.print("  [cyan]LLM normalization: enabled[/cyan]")
+            console.print(f"  [{BRAND_ACCENT}]LLM normalization: enabled[/{BRAND_ACCENT}]")
         # Phase 2.3: Show Docker mode
         if docker_isolation:
             network_mode = "bridge" if docker_allow_network else "none"
             console.print(
-                f"  [cyan]Docker isolation: {docker_image} (network: {network_mode})[/cyan]"
+                f"  [{BRAND_ACCENT}]Docker isolation: {docker_image} (network: {network_mode})[/{BRAND_ACCENT}]"
             )
         # Phase 16.4: Show shell snapshots
         if shell_snapshots:
-            console.print("  [cyan]Shell snapshots: enabled[/cyan]")
+            console.print(f"  [{BRAND_ACCENT}]Shell snapshots: enabled[/{BRAND_ACCENT}]")
         # Phase 11.1: Show strict limits mode
         if strict_limits:
             console.print(
@@ -1189,21 +1190,25 @@ def run_cmd(
             )
         # Show interrupt points
         if interrupt_before:
-            console.print(f"  [cyan]Interrupt before: {', '.join(interrupt_before)}[/cyan]")
+            console.print(
+                f"  [{BRAND_ACCENT}]Interrupt before: {', '.join(interrupt_before)}[/{BRAND_ACCENT}]"
+            )
         if interrupt_after:
-            console.print(f"  [cyan]Interrupt after: {', '.join(interrupt_after)}[/cyan]")
+            console.print(
+                f"  [{BRAND_ACCENT}]Interrupt after: {', '.join(interrupt_after)}[/{BRAND_ACCENT}]"
+            )
         # Phase 4.2: Show collaboration mode
         collab_mode_colors = {
             "autonomous": "green",
             "supervised": "yellow",
-            "pair": "cyan",
+            "pair": BRAND_ACCENT,
             "guided": "magenta",
         }
         collab_color = collab_mode_colors.get(effective_collab_mode.lower(), "white")
         console.print(f"  [{collab_color}]Collaboration: {effective_collab_mode}[/{collab_color}]")
         # Phase 7.1: Show subagent routing status
         if use_subagents:
-            console.print("  [cyan]Subagent routing: enabled[/cyan]")
+            console.print(f"  [{BRAND_ACCENT}]Subagent routing: enabled[/{BRAND_ACCENT}]")
             console.print(
                 f"    [dim]Orchestrator: {orchestrator_model} (threshold={orchestrator_threshold})[/dim]"
             )
@@ -1213,7 +1218,9 @@ def run_cmd(
                     console.print(f"    [dim]Model override: {override}[/dim]")
         # Phase 15.4: Show MCP servers
         if mcp_servers:
-            console.print(f"  [cyan]MCP servers: {len(mcp_servers)} configured[/cyan]")
+            console.print(
+                f"  [{BRAND_ACCENT}]MCP servers: {len(mcp_servers)} configured[/{BRAND_ACCENT}]"
+            )
             for mcp_cfg in mcp_servers:
                 transport = mcp_cfg.transport
                 if transport == "stdio":
@@ -1307,12 +1314,27 @@ def run_cmd(
 
     # Run using ExecutorGraph (graph-based executor is now the only mode)
     async def _run():
+        from ai_infra.executor.checkpoint import Checkpointer
         from ai_infra.executor.graph import ExecutorGraph
+        from ai_infra.executor.todolist import TodoListManager
+
+        # Initialize checkpointer if git repo exists
+        checkpointer = None
+        try:
+            checkpointer = Checkpointer(roadmap.parent)
+            if not checkpointer.is_repo:
+                checkpointer = None
+        except Exception:
+            checkpointer = None
+
+        # Initialize todo manager for ROADMAP sync and todos.json persistence
+        todo_manager = TodoListManager(roadmap)
 
         graph_executor = ExecutorGraph(
             agent=agent,
             roadmap_path=str(roadmap),
-            # Components will be auto-created by ExecutorGraph if not provided
+            checkpointer=checkpointer,
+            todo_manager=todo_manager,
             callbacks=callbacks,  # Phase 2.2.1: Pass callbacks for token tracking
             use_llm_normalization=normalize_with_llm,
             sync_roadmap=sync_roadmap,
@@ -1436,10 +1458,12 @@ def run_cmd(
         if summary.paused:
             console.print()
             console.print("[yellow]Execution paused. Review changes and run:[/yellow]")
-            console.print(f"  [cyan]ai-infra executor resume --roadmap {roadmap} --approve[/cyan]")
+            console.print(
+                f"  [{BRAND_ACCENT}]ai-infra executor resume --roadmap {roadmap} --approve[/{BRAND_ACCENT}]"
+            )
             console.print("Or to reject and rollback:")
             console.print(
-                f"  [cyan]ai-infra executor resume --roadmap {roadmap} --reject --rollback[/cyan]"
+                f"  [{BRAND_ACCENT}]ai-infra executor resume --roadmap {roadmap} --reject --rollback[/{BRAND_ACCENT}]"
             )
 
     # Exit with appropriate code
@@ -1598,7 +1622,9 @@ def resume_cmd(
     if approve:
         executor.resume(approved=True)
         console.print("[green]Changes approved. Ready to continue.[/green]")
-        console.print(f"Run [cyan]ai-infra executor run --roadmap {roadmap}[/cyan] to continue.")
+        console.print(
+            f"Run [{BRAND_ACCENT}]ai-infra executor run --roadmap {roadmap}[/{BRAND_ACCENT}] to continue."
+        )
     else:
         result = executor.resume(approved=False, rollback=rollback)
         if rollback and result:
@@ -1674,7 +1700,7 @@ def rollback_cmd(
             raise typer.Exit(1)
         task_id = completed_tasks[-1]
 
-    console.print(f"Rolling back task [cyan]{task_id}[/cyan]...")
+    console.print(f"Rolling back task [{BRAND_ACCENT}]{task_id}[/{BRAND_ACCENT}]...")
 
     result = checkpointer.rollback(task_id, hard=hard)
 
@@ -1688,7 +1714,7 @@ def rollback_cmd(
         # Reset state for the rolled back task
         executor.state.reset_task(task_id)
         executor.state.save()
-        console.print(f"  Task [cyan]{task_id}[/cyan] reset to pending")
+        console.print(f"  Task [{BRAND_ACCENT}]{task_id}[/{BRAND_ACCENT}] reset to pending")
     else:
         console.print(f"[red]Rollback failed: {result.error}[/red]")
         raise typer.Exit(1)
@@ -2006,7 +2032,7 @@ def memory_cmd(
                     if info.created_by_task
                     else ""
                 )
-                console.print(f"  [cyan]{path}[/cyan]: {purpose}{created_by}")
+                console.print(f"  [{BRAND_ACCENT}]{path}[/{BRAND_ACCENT}]: {purpose}{created_by}")
 
     elif format == "history":
         if not memory.run_history:
@@ -2361,7 +2387,7 @@ def skills_list_cmd(
     table = Table(title=f"Learned Skills ({len(db)} total)")
     table.add_column("ID", style="dim", width=12)
     table.add_column("Title", style="bold")
-    table.add_column("Type", style="cyan")
+    table.add_column("Type", style=BRAND_ACCENT)
     table.add_column("Languages", style="green")
     table.add_column("Confidence", style="yellow", justify="right")
     table.add_column("Uses", style="magenta", justify="right")
@@ -2583,7 +2609,7 @@ def audit_cmd(
     from ai_infra.llm.shell.audit import SUSPICIOUS_PATTERNS
 
     if show_suspicious or event_type == "suspicious":
-        console.print("[bold cyan]Suspicious Pattern Detection[/bold cyan]")
+        console.print(f"[bold {BRAND_ACCENT}]Suspicious Pattern Detection[/bold {BRAND_ACCENT}]")
         console.print()
         console.print("[bold]Monitored Patterns:[/bold]")
         for pattern, description in SUSPICIOUS_PATTERNS:
@@ -2592,7 +2618,7 @@ def audit_cmd(
         console.print()
         console.print(f"[dim]Total patterns monitored: {len(SUSPICIOUS_PATTERNS)}[/dim]")
     else:
-        console.print("[bold cyan]Shell Audit Configuration[/bold cyan]")
+        console.print(f"[bold {BRAND_ACCENT}]Shell Audit Configuration[/bold {BRAND_ACCENT}]")
         console.print()
         console.print("[bold]Event Types Logged:[/bold]")
         for name, etype in type_map.items():
@@ -2672,7 +2698,7 @@ def mcp_status_cmd(
             raise typer.Exit(1)
 
     if not output_json:
-        console.print("[bold cyan]MCP Server Status[/bold cyan]")
+        console.print(f"[bold {BRAND_ACCENT}]MCP Server Status[/bold {BRAND_ACCENT}]")
         console.print(f"Checking {len(mcp_servers)} server(s)...\n")
 
     # Create MCP manager and check status
@@ -2738,7 +2764,7 @@ def mcp_status_cmd(
     servers = summary.get("servers", [])
     if servers:
         table = Table(show_header=True, header_style="bold", box=None)
-        table.add_column("Server", style="cyan")
+        table.add_column("Server", style=BRAND_ACCENT)
         table.add_column("Transport", style="dim")
         table.add_column("Status")
         table.add_column("Tools", justify="right")

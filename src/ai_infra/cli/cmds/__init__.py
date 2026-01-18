@@ -6,6 +6,7 @@ from .help import _HELP
 from .imagegen_cmds import register as register_imagegen
 from .mcp_cmds import register as register_mcp
 from .multimodal_cmds import register as register_multimodal
+from .setup_cmds import register_setup
 from .stdio_publisher_cmds import register as register_stdio_publisher
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "register_imagegen",
     "register_mcp",
     "register_multimodal",
+    "register_setup",
     "register_stdio_publisher",
 ]

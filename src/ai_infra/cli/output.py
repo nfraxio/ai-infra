@@ -28,6 +28,7 @@ from rich.text import Text
 
 from ai_infra.cli.console import (
     BOX_STYLES,
+    BRAND_ACCENT,
     get_console,
     print_error,
     print_info,
@@ -49,12 +50,14 @@ def print_banner() -> None:
     console = get_console()
 
     banner = Text()
-    banner.append("╭─────────────────────────────────────────────────────────╮\n", style="cyan")
-    banner.append("│", style="cyan")
-    banner.append("  ai-infra ", style="bold cyan")
+    banner.append(
+        "╭─────────────────────────────────────────────────────────╮\n", style=BRAND_ACCENT
+    )
+    banner.append("│", style=BRAND_ACCENT)
+    banner.append("  ai-infra ", style=f"bold {BRAND_ACCENT}")
     banner.append("— Production-ready SDK for AI applications  ", style="dim")
-    banner.append("│\n", style="cyan")
-    banner.append("╰─────────────────────────────────────────────────────────╯", style="cyan")
+    banner.append("│\n", style=BRAND_ACCENT)
+    banner.append("╰─────────────────────────────────────────────────────────╯", style=BRAND_ACCENT)
     console.print(banner)
 
 
@@ -135,7 +138,7 @@ def print_models(
 
     # Provider header
     header = Text()
-    header.append(f"  {provider}", style="bold cyan")
+    header.append(f"  {provider}", style=f"bold {BRAND_ACCENT}")
     header.append(f"  ({len(models)} models)", style="dim")
 
     console.print()
@@ -151,7 +154,7 @@ def print_models(
 
         # First column
         model1 = display_models[i]
-        line.append("• ", style="cyan")
+        line.append("• ", style=BRAND_ACCENT)
         line.append(model1[: col_width - 2], style="white")
 
         # Second column (if exists)
@@ -160,7 +163,7 @@ def print_models(
             if padding > 0:
                 line.append(" " * padding)
             model2 = display_models[i + 1]
-            line.append("• ", style="cyan")
+            line.append("• ", style=BRAND_ACCENT)
             line.append(model2[: col_width - 2], style="white")
 
         console.print(line)
@@ -201,14 +204,14 @@ def print_all_models(
 
         # Provider header
         header = Text()
-        header.append(f"\n  {provider}", style="bold cyan")
+        header.append(f"\n  {provider}", style=f"bold {BRAND_ACCENT}")
         header.append(f"  ({len(models)} models)", style="dim")
         console.print(header)
 
         # Models list
         display_models = models[:max_per_provider]
         for model in display_models:
-            console.print(f"    [cyan]•[/] {model}")
+            console.print(f"    [{BRAND_ACCENT}]•[/] {model}")
 
         if len(models) > max_per_provider:
             remaining = len(models) - max_per_provider
@@ -248,7 +251,7 @@ def print_sessions(
     table.add_column("#", style="dim", justify="right")
     table.add_column("Session", style="bold")
     table.add_column("Messages", justify="right")
-    table.add_column("Model", style="cyan")
+    table.add_column("Model", style=BRAND_ACCENT)
     table.add_column("Updated", style="dim")
 
     for i, session in enumerate(sessions, 1):
@@ -333,14 +336,14 @@ def print_quick_start() -> None:
 
     for cmd, desc in commands:
         content.append("  $ ", style="dim")
-        content.append(cmd, style="bold cyan")
+        content.append(cmd, style=f"bold {BRAND_ACCENT}")
         content.append(f"  {desc}\n", style="dim")
 
     panel = Panel(
         content,
         title="[bold]ai-infra[/]",
         title_align="left",
-        border_style="cyan",
+        border_style=BRAND_ACCENT,
         box=BOX_STYLES["default"],
         padding=(1, 2),
     )
@@ -413,7 +416,7 @@ def print_voices(
         box=None,
         padding=(0, 2),
     )
-    table.add_column("Voice ID", style="cyan")
+    table.add_column("Voice ID", style=BRAND_ACCENT)
     table.add_column("Name", style="white")
     table.add_column("Language", style="dim")
 

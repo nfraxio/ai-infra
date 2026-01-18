@@ -41,6 +41,7 @@ from rich.text import Text
 
 from ai_infra.cli.console import (
     BOX_STYLES,
+    BRAND_ACCENT,
     detect_terminal_capabilities,
     get_console,
     print_info,
@@ -288,7 +289,7 @@ class TaskPreview:
         for i, (key, label) in enumerate(actions):
             if i > 0:
                 text.append("   ", style="dim")
-            text.append(key, style="bold cyan")
+            text.append(key, style=f"bold {BRAND_ACCENT}")
             text.append(f" {label}", style="dim")
 
         return text
@@ -327,7 +328,7 @@ class TaskPreview:
             content,
             title="[bold]NEXT TASK[/]",
             title_align="left",
-            border_style="cyan",
+            border_style=BRAND_ACCENT,
             box=BOX_STYLES.get("default", BOX_STYLES["default"]),
             padding=(1, 2),
         )
@@ -379,7 +380,7 @@ class ContextPreview:
             padding=(0, 2),
         )
         table.add_column("Component", style="dim")
-        table.add_column("Tokens", style="bold cyan", justify="right")
+        table.add_column("Tokens", style=f"bold {BRAND_ACCENT}", justify="right")
 
         table.add_row("System Prompt:", self._format_tokens(ctx.system_tokens))
         table.add_row("Task Context:", self._format_tokens(ctx.task_tokens))
@@ -525,7 +526,7 @@ def render_help() -> Panel:
         box=None,
         padding=(0, 2),
     )
-    table.add_column("Key", style="bold cyan")
+    table.add_column("Key", style=f"bold {BRAND_ACCENT}")
     table.add_column("Action", style="white")
     table.add_column("Description", style="dim")
 

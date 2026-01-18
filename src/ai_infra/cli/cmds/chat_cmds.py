@@ -15,10 +15,14 @@ Sessions & Persistence:
 
     Within chat REPL:
     /sessions                        # List saved sessions
+    /switch [name]                   # Switch session (interactive picker if no name)
     /save [name]                     # Save current session
     /load <name>                     # Load a saved session
     /new                             # Start new session (clears memory)
     /delete <name>                   # Delete a saved session
+    /deleteall                       # Delete all sessions (with confirmation)
+
+    Session names are auto-generated based on conversation topic when you exit.
 
 MCP Tools (connect to external tools):
     ai-infra chat --mcp http://localhost:8000/mcp    # Single MCP server
@@ -47,13 +51,10 @@ from rich.panel import Panel
 from rich.spinner import Spinner as RichSpinner
 from rich.text import Text
 
+from ai_infra.cli.console import BRAND_ACCENT
+
 # Rich console for formatted output
 _console = Console()
-
-# nfrax brand colors (dark blue theme)
-_BRAND_PRIMARY = "#1e3a5f"  # Dark navy
-_BRAND_ACCENT = "#3b82f6"  # Accent blue
-_BRAND_MUTED = "#64748b"  # Slate
 
 
 # Custom Heading class that left-aligns instead of centering
@@ -197,7 +198,7 @@ def _render_tool_call(tool_name: str, result: str) -> None:
     preview = preview.replace("\\n", " ").replace("\n", " ")
 
     _console.print(
-        f"  [green]✓[/green] [{_BRAND_ACCENT}]{tool_name}[/{_BRAND_ACCENT}] [dim]→ {preview}[/dim]"
+        f"  [green]✓[/green] [{BRAND_ACCENT}]{tool_name}[/{BRAND_ACCENT}] [dim]→ {preview}[/dim]"
     )
 
 
@@ -437,6 +438,58 @@ class ChatStorage:
                 return session_id
         return None
 
+    def delete_all(self, exclude_session_id: str | None = None) -> int:
+        """Delete all sessions except the current one.
+
+        Args:
+            exclude_session_id: Session to keep (usually current session)
+
+        Returns:
+            Number of sessions deleted
+        """
+        deleted_count = 0
+        for path in self._base_dir.glob("*.json"):
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                    session_id = data.get("session_id", path.stem)
+                    if session_id != exclude_session_id:
+                        path.unlink()
+                        deleted_count += 1
+            except (json.JSONDecodeError, OSError):
+                # Delete malformed sessions too
+                path.unlink()
+                deleted_count += 1
+        return deleted_count
+
+    def rename(self, old_id: str, new_id: str) -> bool:
+        """Rename a session.
+
+        Args:
+            old_id: Current session ID
+            new_id: New session ID
+
+        Returns:
+            True if renamed successfully
+        """
+        if not self.exists(old_id) or self.exists(new_id):
+            return False
+
+        old_path = self._session_path(old_id)
+        new_path = self._session_path(new_id)
+
+        try:
+            # Load, update session_id, and save to new path
+            with open(old_path) as f:
+                data = json.load(f)
+            data["session_id"] = new_id
+            with open(new_path, "w") as f:
+                json.dump(data, f, indent=2)
+            old_path.unlink()
+            return True
+        except (json.JSONDecodeError, OSError):
+            return False
+
 
 # Global storage instance
 _storage: ChatStorage | None = None
@@ -527,10 +580,71 @@ def _build_messages_with_history(
 
 
 def _generate_session_id() -> str:
-    """Generate a unique session ID."""
+    """Generate a unique session ID (timestamp-based fallback)."""
     from datetime import datetime
 
-    return f"chat-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    return f"session-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+
+def _generate_session_name_with_llm(
+    messages: list[dict[str, str]], provider: str | None = None
+) -> str | None:
+    """Generate a descriptive session name using LLM based on conversation content.
+
+    Args:
+        messages: The conversation history
+        provider: Optional provider to use for name generation
+
+    Returns:
+        A short, descriptive name or None if generation fails
+    """
+    if not messages:
+        return None
+
+    # Build a summary of the conversation (first few messages)
+    summary_msgs = messages[:4]  # First 4 messages should be enough context
+    conversation_text = "\n".join(
+        f"{m['role'].upper()}: {m['content'][:200]}" for m in summary_msgs
+    )
+
+    try:
+        from ai_infra.llm import LLM
+
+        llm = LLM()
+        prompt = f"""Generate a short, descriptive name (2-5 words, no special characters except hyphens) for this chat session based on the conversation topic. Return ONLY the name, nothing else.
+
+Conversation:
+{conversation_text}
+
+Examples of good names:
+- python-debugging-help
+- api-design-review
+- recipe-ideas
+- travel-planning-japan
+
+Name:"""
+
+        response = llm.chat(
+            prompt,
+            provider=provider,
+            model="gpt-4o-mini" if provider == "openai" else None,  # Use cheap model
+            temperature=0.3,
+        )
+
+        # Extract and sanitize the name
+        name = _extract_content(response).strip().lower()
+        # Remove any quotes, extra whitespace, punctuation except hyphens
+        name = re.sub(r"[^\w\s-]", "", name)
+        name = re.sub(r"\s+", "-", name)
+        name = name[:50]  # Limit length
+
+        if name and len(name) >= 3:
+            return name
+    except Exception:
+        # Silently fail - will use fallback
+        pass
+
+    return None
 
 
 def _format_time_ago(iso_str: str | None) -> str:
@@ -562,9 +676,9 @@ def _print_welcome(
     """Print welcome message."""
     typer.echo()
     # Use dark blue brand color for box
-    _console.print("╭─────────────────────────────────────────╮", style=_BRAND_ACCENT)
-    _console.print("│         ai-infra Interactive Chat       │", style=_BRAND_ACCENT)
-    _console.print("╰─────────────────────────────────────────╯", style=_BRAND_ACCENT)
+    _console.print("╭─────────────────────────────────────────╮", style=BRAND_ACCENT)
+    _console.print("│         ai-infra Interactive Chat       │", style=BRAND_ACCENT)
+    _console.print("╰─────────────────────────────────────────╯", style=BRAND_ACCENT)
     typer.echo()
     typer.echo(f"  Provider: {provider}")
     typer.echo(f"  Model:    {model}")
@@ -572,15 +686,17 @@ def _print_welcome(
     if message_count > 0:
         typer.secho(f"  Memory:   {message_count} messages restored", fg=typer.colors.GREEN)
     if tool_count > 0:
-        _console.print(f"  Tools:    {tool_count} MCP tools available", style=_BRAND_ACCENT)
+        _console.print(f"  Tools:    {tool_count} MCP tools available", style=BRAND_ACCENT)
     typer.echo()
     _console.print("  Commands:", style="dim")
-    _console.print("    /help     Show all commands", style="dim")
-    _console.print("    /sessions List saved sessions", style="dim")
+    _console.print("    /help      Show all commands", style="dim")
+    _console.print("    /use       Switch provider/model (e.g., /use openai gpt-4o)", style="dim")
+    _console.print("    /switch    Switch session (interactive or /switch <name>)", style="dim")
+    _console.print("    /sessions  List saved sessions", style="dim")
     if tool_count > 0:
-        _console.print("    /tools    List available MCP tools", style="dim")
-    _console.print("    /clear    Clear conversation", style="dim")
-    _console.print("    /quit     Save and exit", style="dim")
+        _console.print("    /tools     List available MCP tools", style="dim")
+    _console.print("    /clear     Clear conversation", style="dim")
+    _console.print("    /quit      Save and exit", style="dim")
     typer.echo()
 
 
@@ -595,16 +711,19 @@ def _print_help(voice_enabled: bool = False):
     typer.echo()
     typer.secho("Session Commands:", bold=True)
     typer.echo("  /sessions          List all saved sessions")
-    typer.echo("  /save [name]       Save current session (auto-generates name if omitted)")
+    typer.echo("  /switch [name]     Switch to a session (interactive picker if no name)")
     typer.echo("  /load <name>       Load a saved session")
     typer.echo("  /new               Start a new session (current is auto-saved)")
-    typer.echo("  /delete <name>     Delete a saved session")
+    typer.echo("  /save [name]       Save current session")
     typer.echo("  /rename <name>     Rename current session")
+    typer.echo("  /delete <name>     Delete a saved session")
+    typer.echo("  /deleteall         Delete all sessions (with confirmation)")
     typer.echo()
     typer.secho("Model Commands:", bold=True)
-    typer.echo("  /model <name>      Change model")
-    typer.echo("  /provider <name>   Change provider")
-    typer.echo("  /temp <value>      Set temperature (0.0-2.0)")
+    typer.echo("  /use <provider> [model]   Switch provider and model at once")
+    typer.echo("  /model <name>             Change model (for current provider)")
+    typer.echo("  /provider <name>          Change provider (resets model to default)")
+    typer.echo("  /temp <value>             Set temperature (0.0-2.0)")
     typer.echo()
     if voice_enabled:
         typer.secho("Voice Commands:", bold=True)
@@ -622,6 +741,7 @@ def _print_help(voice_enabled: bool = False):
     typer.echo()
     typer.secho("Tips:", bold=True)
     typer.echo("  • Sessions auto-save on exit and auto-resume on start")
+    typer.echo("  • Session names are auto-generated based on conversation topic")
     typer.echo("  • Multi-line input: end line with \\ to continue")
     typer.echo("  • Ctrl+C to cancel current generation")
     typer.echo("  • Ctrl+D to exit")
@@ -708,10 +828,26 @@ def _run_repl(
             _console.print()
             raise typer.Exit(1)
 
-    def _save_session():
-        """Save current session to storage."""
+    def _save_session(auto_rename: bool = False):
+        """Save current session to storage.
+
+        Args:
+            auto_rename: If True and session has generic name, try to rename with LLM
+        """
+        nonlocal current_session_id
         if no_persist:
             return
+
+        # Try to auto-generate a better name if session has generic name and has messages
+        if auto_rename and conversation and len(conversation) >= 2:
+            if current_session_id.startswith("session-") or current_session_id.startswith("chat-"):
+                new_name = _generate_session_name_with_llm(conversation, current_provider)
+                if new_name and not storage.exists(new_name):
+                    old_id = current_session_id
+                    current_session_id = new_name
+                    # Delete old session file if it exists
+                    storage.delete(old_id)
+
         metadata = {
             "provider": current_provider,
             "model": current_model,
@@ -737,8 +873,10 @@ def _run_repl(
                     # Fall through to command handling below
                 elif pre_input.lower() in ("quit", "exit", "q"):
                     # Quick quit without slash
-                    _save_session()
-                    typer.secho("[OK] Session saved", fg=typer.colors.GREEN)
+                    _save_session(auto_rename=True)
+                    typer.secho(
+                        f"[OK] Session saved as: {current_session_id}", fg=typer.colors.GREEN
+                    )
                     typer.echo("\nGoodbye! ")
                     break
                 elif pre_input:
@@ -793,8 +931,10 @@ def _run_repl(
                 arg = cmd_parts[1] if len(cmd_parts) > 1 else None
 
                 if cmd in ("quit", "exit", "q"):
-                    _save_session()
-                    typer.secho("[OK] Session saved", fg=typer.colors.GREEN)
+                    _save_session(auto_rename=True)
+                    typer.secho(
+                        f"[OK] Session saved as: {current_session_id}", fg=typer.colors.GREEN
+                    )
                     typer.echo("\nGoodbye! ")
                     break
 
@@ -966,23 +1106,159 @@ def _run_repl(
                     )
                     continue
 
+                elif cmd == "switch":
+                    # Switch to another session - interactive if no name provided
+                    sessions = storage.list_sessions()
+                    other_sessions = [s for s in sessions if s["session_id"] != current_session_id]
+
+                    if not other_sessions:
+                        typer.echo("No other sessions to switch to.")
+                        typer.echo("Use /new to create a new session.")
+                        continue
+
+                    if arg:
+                        # Direct switch by name
+                        switch_id = arg.strip()
+                        if not storage.exists(switch_id):
+                            typer.secho(f"[X] Session not found: {switch_id}", fg=typer.colors.RED)
+                            typer.echo("Use /sessions to list available sessions")
+                            continue
+                    else:
+                        # Interactive picker
+                        typer.echo()
+                        typer.secho("Switch to session:", bold=True)
+                        for i, s in enumerate(other_sessions, 1):
+                            provider_info = s.get("provider") or "auto"
+                            time_ago = _format_time_ago(s.get("updated_at"))
+                            typer.echo(
+                                f"  [{i}] {s['session_id']} "
+                                f"- {s['message_count']} msgs, {provider_info}, {time_ago}"
+                            )
+                        typer.echo()
+                        typer.echo("Enter number (or press Enter to cancel): ", nl=False)
+                        choice = input().strip()
+
+                        if not choice:
+                            typer.echo("Cancelled.")
+                            continue
+
+                        try:
+                            idx = int(choice) - 1
+                            if 0 <= idx < len(other_sessions):
+                                switch_id = other_sessions[idx]["session_id"]
+                            else:
+                                typer.secho("[X] Invalid selection", fg=typer.colors.RED)
+                                continue
+                        except ValueError:
+                            typer.secho("[X] Invalid number", fg=typer.colors.RED)
+                            continue
+
+                    # Save current session before switching
+                    _save_session()
+                    # Load new session
+                    session_data = storage.load(switch_id)
+                    if session_data:
+                        conversation = session_data.get("messages", [])
+                        current_session_id = switch_id
+                        metadata = session_data.get("metadata", {})
+                        if metadata.get("system"):
+                            current_system = metadata["system"]
+                        if metadata.get("provider"):
+                            current_provider = metadata["provider"]
+                            llm = _get_llm(current_provider, current_model)
+                        if metadata.get("model"):
+                            current_model = metadata["model"]
+                        if metadata.get("temperature"):
+                            current_temp = metadata["temperature"]
+                        typer.secho(
+                            f"[OK] Switched to: {switch_id} ({len(conversation)} messages)",
+                            fg=typer.colors.GREEN,
+                        )
+                    continue
+
+                elif cmd == "deleteall":
+                    # Delete all sessions with confirmation
+                    sessions = storage.list_sessions()
+                    other_count = len(
+                        [s for s in sessions if s["session_id"] != current_session_id]
+                    )
+
+                    if other_count == 0:
+                        typer.echo("No other sessions to delete.")
+                        continue
+
+                    typer.secho(
+                        f"Delete {other_count} session(s)? Current session will be kept.",
+                        bold=True,
+                    )
+                    typer.echo("Type 'yes' to confirm: ", nl=False)
+                    confirm = input().strip().lower()
+
+                    if confirm == "yes":
+                        deleted = storage.delete_all(exclude_session_id=current_session_id)
+                        typer.secho(
+                            f"[OK] Deleted {deleted} session(s)",
+                            fg=typer.colors.GREEN,
+                        )
+                    else:
+                        typer.echo("Cancelled.")
+                    continue
+
                 elif cmd == "model":
                     if arg:
-                        current_model = arg
-                        typer.secho(f"[OK] Model changed to: {arg}", fg=typer.colors.YELLOW)
+                        new_model = arg.strip()
+                        current_model = new_model
+                        typer.secho(f"[OK] Model changed to: {new_model}", fg=typer.colors.YELLOW)
+                        # Show hint about listing available models
+                        provider_hint = current_provider or _get_default_provider()
+                        typer.echo(
+                            f"    [dim]Use 'ai-infra models {provider_hint}' to see available models[/dim]"
+                        )
                     else:
                         display = current_model or "default (auto)"
                         typer.echo(f"Current model: {display}")
+                        if current_provider or _get_default_provider():
+                            provider_hint = current_provider or _get_default_provider()
+                            typer.echo(
+                                f"    [dim]Use 'ai-infra models {provider_hint}' to see options[/dim]"
+                            )
                     continue
 
                 elif cmd == "provider":
                     if arg:
-                        current_provider = arg
+                        # Parse provider name (handle accidental multi-word input)
+                        new_provider = arg.split()[0]  # Take only the first word
+
+                        # Validate provider
+                        from ai_infra.llm.providers.discovery import list_providers
+
+                        valid_providers = list_providers()
+                        if new_provider not in valid_providers:
+                            typer.secho(
+                                f"[X] Unknown provider: {new_provider}",
+                                fg=typer.colors.RED,
+                            )
+                            typer.echo(f"    Valid providers: {', '.join(valid_providers)}")
+                            continue
+
+                        # Reset model when provider changes (models are provider-specific)
+                        old_provider = current_provider
+                        current_provider = new_provider
+                        current_model = None  # Reset to provider's default
+
                         try:
                             llm = _get_llm(current_provider, current_model)
-                            typer.secho(f"[OK] Provider changed to: {arg}", fg=typer.colors.YELLOW)
+                            typer.secho(
+                                f"[OK] Provider changed to: {new_provider} (using default model)",
+                                fg=typer.colors.YELLOW,
+                            )
+                            if old_provider and old_provider != new_provider:
+                                typer.echo(
+                                    "    [dim]Model reset to default. Use /model to change.[/dim]"
+                                )
                         except Exception as e:
                             typer.secho(f"[X] Failed to change provider: {e}", fg=typer.colors.RED)
+                            current_provider = old_provider  # Revert on failure
                     else:
                         display = current_provider or _get_default_provider() + " (auto)"
                         typer.echo(f"Current provider: {display}")
@@ -1003,6 +1279,53 @@ def _run_repl(
                             )
                     else:
                         typer.echo(f"Current temperature: {current_temp}")
+                    continue
+
+                elif cmd == "use":
+                    # Convenience command: /use <provider> [model]
+                    # Switches both provider and model at once
+                    if not arg:
+                        typer.secho(
+                            "Usage: /use <provider> [model]",
+                            fg=typer.colors.RED,
+                        )
+                        typer.echo("    Example: /use openai gpt-4o")
+                        typer.echo("    Example: /use anthropic claude-sonnet-4-20250514")
+                        continue
+
+                    parts = arg.split(maxsplit=1)
+                    new_provider = parts[0]
+                    new_model = parts[1] if len(parts) > 1 else None
+
+                    # Validate provider
+                    from ai_infra.llm.providers.discovery import list_providers
+
+                    valid_providers = list_providers()
+                    if new_provider not in valid_providers:
+                        typer.secho(
+                            f"[X] Unknown provider: {new_provider}",
+                            fg=typer.colors.RED,
+                        )
+                        typer.echo(f"    Valid providers: {', '.join(valid_providers)}")
+                        continue
+
+                    current_provider = new_provider
+                    current_model = new_model
+
+                    try:
+                        llm = _get_llm(current_provider, current_model)
+                        if new_model:
+                            typer.secho(
+                                f"[OK] Now using: {new_provider}/{new_model}",
+                                fg=typer.colors.YELLOW,
+                            )
+                        else:
+                            typer.secho(
+                                f"[OK] Now using: {new_provider} (default model)",
+                                fg=typer.colors.YELLOW,
+                            )
+                    except Exception as e:
+                        typer.secho(f"[X] Failed: {e}", fg=typer.colors.RED)
                     continue
 
                 elif cmd == "tools":
@@ -1102,11 +1425,11 @@ def _run_repl(
 
                                     if stream and content:
                                         # Stream with live markdown rendering
-                                        _console.print(f"[{_BRAND_ACCENT}]AI:[/{_BRAND_ACCENT}]")
+                                        _console.print(f"[{BRAND_ACCENT}]AI:[/{BRAND_ACCENT}]")
                                         await _stream_with_markdown(content, resolved_model)
                                     else:
                                         _console.print(
-                                            f"[{_BRAND_ACCENT}]AI:[/{_BRAND_ACCENT}] ", end=""
+                                            f"[{BRAND_ACCENT}]AI:[/{BRAND_ACCENT}] ", end=""
                                         )
                                         _render_response(content, resolved_model)
                                     response_text = content
@@ -1114,7 +1437,7 @@ def _run_repl(
                             else:
                                 # No tools - stream with live markdown rendering
                                 spinner.stop()
-                                _console.print(f"[{_BRAND_ACCENT}]AI:[/{_BRAND_ACCENT}]")
+                                _console.print(f"[{BRAND_ACCENT}]AI:[/{BRAND_ACCENT}]")
 
                                 if stream:
                                     # Use Rich Live for streaming with markdown
@@ -1236,7 +1559,7 @@ def _run_repl(
                             # Show tool call with running indicator (brand color)
                             print()
                             _console.print(
-                                f"  [dim]⧗[/dim] [{_BRAND_ACCENT}]{tool_name}[/{_BRAND_ACCENT}] [dim]running...[/dim]",
+                                f"  [dim]⧗[/dim] [{BRAND_ACCENT}]{tool_name}[/{BRAND_ACCENT}] [dim]running...[/dim]",
                                 end="",
                             )
 
@@ -1363,12 +1686,12 @@ def _run_repl(
             typer.echo()  # Extra newline for readability
 
         except EOFError:
-            _save_session()
+            _save_session(auto_rename=True)
             typer.echo("\nGoodbye! ")
             break
 
         except KeyboardInterrupt:
-            _save_session()
+            _save_session(auto_rename=True)
             typer.echo("\nGoodbye! ")
             break
 
@@ -1547,13 +1870,20 @@ def chat_cmd(
     # One-shot mode (no persistence)
     if message:
         try:
-            response = llm.chat(
-                user_msg=message,
-                system=system,
-                provider=provider,  # Pass actual value (None for auto)
-                model_name=model,  # Pass actual value (None for auto)
-                model_kwargs={"temperature": temperature},
-            )
+            # Show thinking indicator while waiting for response
+            with Live(
+                RichSpinner("dots", text=Text(" Thinking...", style="dim")),
+                console=_console,
+                transient=True,
+                refresh_per_second=10,
+            ):
+                response = llm.chat(
+                    user_msg=message,
+                    system=system,
+                    provider=provider,  # Pass actual value (None for auto)
+                    model_name=model,  # Pass actual value (None for auto)
+                    model_kwargs={"temperature": temperature},
+                )
 
             # Extract content from response (handles AIMessage, dict, or string)
             response_text = _extract_content(response)
